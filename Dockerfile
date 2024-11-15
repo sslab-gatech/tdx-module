@@ -91,4 +91,14 @@ RUN apt install -y build-essential checkinstall \
 RUN pip uninstall --yes setuptools \
     && pip install setuptools>=65.5.1 \
     && pip install cmake==3.18 \
-    && update-alternatives --install /usr/bin/cmake cmake /usr/local/bin/cmake 1 \
+    && update-alternatives --install /usr/bin/cmake cmake /usr/local/bin/cmake 1
+
+RUN apt-get install -y bear
+
+CMD ["bash", "-c", \
+     "cd libs/ipp/ipp-crypto-ipp-crypto_2021_10_0 && \
+      CC=clang CXX=clang++ cmake CMakeLists.txt -B_build -DARCH=intel64 -DMERGED_BLD:BOOL=off -DNO_CRYPTO_MB:BOOL=TRUE -DPLATFORM_LIST=l9 -DIPPCP_CUSTOM_BUILD=\"IPPCP_AES_ON;IPPCP_CLMUL_ON;IPPCP_VAES_ON;IPPCP_VCLMUL_ON;\" && \
+      cd _build && \
+      make -j8 ippcp_s_l9 && \
+      cd ../../../../ && \
+      bear make -j DEBUG=1 TDX_MODULE_BUILD_DATE=20240407 TDX_MODULE_BUILD_NUM=744 TDX_MODULE_UPDATE_VER=6"] 
