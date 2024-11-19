@@ -1,0 +1,224 @@
+#!/bin/env python3
+
+from datetime import datetime
+from dataclasses import dataclass
+from elftools.elf.elffile import ELFFile
+
+from Crypto.PublicKey import RSA
+from Crypto.Signature import pkcs1_15
+from Crypto.Hash import SHA384
+from Crypto.Util.number import long_to_bytes
+
+import sys
+
+
+@dataclass
+class Field:
+    name: str           # Field name
+    size: int           # Field size in byte
+    value: bytes = b''  # Field value in byte
+
+    def __str__(self):
+        value = self.value or bytes(self.size)
+        value = list(reversed([hex(v)[2:].zfill(2) for v in value]))
+
+        v_string = (' '.join(value) if len(value) < 10
+                    else f'{" ".join(value[:4])}...{" ".join(value[-4:])}')
+        
+        return f'{self.name:>30} [{self.size}]:\t{v_string}'
+
+    def to_bytes(self):
+        value = self.value or bytes(self.size)
+        
+        return value
+
+
+class SeamSigstruct:
+    def __init__(self):
+        object.__setattr__(self, '_fields', [
+            Field('header_type', 4),
+            Field('header_length', 4),
+            Field('header_version', 4),
+            Field('module_type', 4),
+            Field('module_vendor', 4),
+            Field('date', 4),
+            Field('size', 4),
+            Field('key_size', 4),
+            Field('modulus_size', 4),
+            Field('exponent_size', 4),
+            Field('reserved0', 88),
+
+            Field('modulus', 384),          # SIGSTRUCT_MODULUS_SIZE
+            Field('exponent', 4),
+            Field('signature', 384),        # SIGSTRUCT_SIGNATURE_SIZE
+
+            Field('seamhash', 48),          # SIGSTRUCT_SEAMHASH_SIZE
+            Field('seamsvn', 2),
+            Field('attributes', 8),
+            Field('rip_offset', 4),
+            Field('num_stack_pages', 1),
+            Field('num_tls_pages', 1),
+            Field('num_keyhole_pages', 2),
+            Field('num_global_data_pages', 2),
+            Field('max_tdmrs', 2),
+            Field('max_rsvd_per_tdmr', 2),
+            Field('pamt_entry_size_4k', 2),
+            Field('pamt_entry_size_2m', 2),
+            Field('pamt_entry_size_1g', 2),
+            Field('reserved1', 6),
+            Field('module_hv', 2),
+            Field('min_update_hv', 2),
+            Field('no_downgrade', 1),
+            Field('reserved2', 1),
+            Field('num_handoff_pages', 2),
+
+            Field('gdt_idt_offset', 4),
+            Field('fault_wrapper_offset', 4),
+            Field('reserved3', 24),
+            Field('cpuid_table_size', 4),
+            *[Field(f'cpuid_table_{i}', 4) for i in range(255)]
+        ])
+
+        object.__setattr__(self, '_attrs', {f.name: f for f in self._fields})
+        
+        sigstruct_size = sum(f.size for f in self._fields)
+        assert sigstruct_size == 2048, \
+            f'Size of SeamSigstruct should be 2048 (now: {sigstruct_size})'
+
+    def __setattr__(self, attr: str, val):
+        if attr not in self._attrs.keys():
+            raise KeyError(f"SeamSigstruct does not have field '{attr}'")
+
+        if attr.startswith('reserved'):
+            raise KeyError(f"SeamSigstruct does not support setting reserved fields")
+
+        if not isinstance(val, int) and not isinstance(val, bytes):
+            raise ValueError(f"SeamSigstruct.{attr} cannot be '{val}'")
+
+        field = self._attrs[attr]
+        if isinstance(val, bytes) and len(val) > field.size:
+            raise ValueError(f"'{val}' does not fit size of {attr} ({field.size})")
+
+        field.value = (val.to_bytes(field.size, byteorder='little') if isinstance(val, int)
+                       else bytes(field.size - len(val)) + val) # If bytes, zero padding
+
+    def __getattr__(self, attr: str):
+        if attr not in self._attrs.keys():
+            raise KeyError(f"SeamSigstruct does not have field '{attr}'")
+
+        field = self._attrs[attr]
+        return field.value
+
+    def __str__(self):
+        string = '\n'.join(str(f) for f in self._fields)
+        return string
+
+    def to_bytes(self):
+        return b''.join([f.to_bytes() for f in self._fields])
+
+
+def popup_fixed_fields(s: SeamSigstruct):
+    s.header_type = 0x6
+    s.header_length = 0xE1
+    s.header_version = 0x10000
+    s.module_type = 0x80000000
+
+    s.module_vendor = 0x8086
+    s.size = 0x200
+    s.key_size = 0x60
+    s.modulus_size = 0x60
+    s.exponent_size = 1
+    
+    s.attributes = 0x0
+
+def popup_tdx_module_fields(s: SeamSigstruct, tdx_module_path: str):
+    module_file = open(tdx_module_path, 'rb')
+    module = module_file.read()
+
+    elffile = ELFFile(module_file)
+    
+    rip_offset = elffile.header['e_entry']
+    
+    symbol_sections = [s for s in elffile.iter_sections()
+                       if s.header['sh_type'] in ('SHT_SYMTAB', 'SHT_DYNSYM')]
+    symbols = sum([list(s.iter_symbols()) for s in symbol_sections], [])
+    symbols = {s.name:s for s in symbols}
+    
+    gdt_idt_offset = symbols['tdx_idt_and_gdt']['st_value']
+    fault_wrapper_offset = symbols['tdx_fault_wrapper']['st_value']
+
+    s.rip_offset = rip_offset
+    s.gdt_idt_offset = gdt_idt_offset
+    s.fault_wrapper_offset = fault_wrapper_offset
+
+    seamhash = SHA384.new(module)
+    s.seamhash = seamhash.digest()
+
+    elffile.close()
+    module_file.close()
+
+def popup_configurable_fields(s: SeamSigstruct):
+    date = datetime.now().strftime('%Y%m%d')[::-1]
+    s.date = bytes([int(date[i+1] + date[i], 16) 
+                    for i in range(0, len(date), 2)])
+
+    s.seamsvn = 0
+    s.num_stack_pages = 1
+    s.num_tls_pages = 1
+    s.num_keyhole_pages = 0x7F
+    s.num_global_data_pages = 0x15
+    
+    s.max_tdmrs = 0
+    s.max_rsvd_per_tdmr = 0
+    s.pamt_entry_size_4k = 0
+    s.pamt_entry_size_2m = 0
+    s.pamt_entry_size_1g = 0
+    s.module_hv = 0
+    s.min_update_hv = 0
+    s.no_downgrade = 0
+    s.num_handoff_pages = 0xD
+    
+    s.cpuid_table_size = 3
+    s.cpuid_table_0 = 0x806f8
+    s.cpuid_table_1 = 0xc06f0
+    s.cpuid_table_2 = 0xa06f0
+
+def sign_and_embed(s: SeamSigstruct):
+    keyPair = RSA.generate(bits=3072) # This should be changed
+
+    modulus_b = long_to_bytes(keyPair.n)
+
+    s.modulus = bytes(reversed(modulus_b))
+    s.exponent = keyPair.e
+
+    s_in_bytes = s.to_bytes()
+    header = s_in_bytes[:128] # HEADER_LENGTH
+    body = s_in_bytes[900:] # BODY_OFFSET
+    message = header + body
+    
+    hash = SHA384.new(message)
+    signature_b = pkcs1_15.new(keyPair).sign(hash)
+
+    s.signature = bytes(reversed(signature_b))
+
+def main():
+    if len(sys.argv) != 2:
+        print("Usage: ./gen_sigstruct <path to tdx_module.so>")
+        sys.exit()
+
+    tdx_module_path = sys.argv[1]
+    sigstruct_path = tdx_module_path + ".sigstruct"
+
+    sigstruct = SeamSigstruct()
+    popup_fixed_fields(sigstruct)
+    popup_tdx_module_fields(sigstruct, tdx_module_path)
+    popup_configurable_fields(sigstruct)
+    sign_and_embed(sigstruct)
+
+    print(sigstruct)
+
+    with open(sigstruct_path, 'wb') as fd:
+        fd.write(sigstruct.to_bytes())
+
+if __name__ == "__main__":
+    main()
