@@ -1,5 +1,7 @@
 #!/bin/env python3
 
+import click
+
 from datetime import datetime
 from dataclasses import dataclass
 from elftools.elf.elffile import ELFFile
@@ -183,8 +185,23 @@ def popup_configurable_fields(s: SeamSigstruct):
     s.cpuid_table_1 = 0xc06f0
     s.cpuid_table_2 = 0xa06f0
 
-def sign_and_embed(s: SeamSigstruct):
-    keyPair = RSA.generate(bits=3072) # This should be changed
+def sign_and_embed(s: SeamSigstruct, pkey_path: str):
+
+    if pkey_path:
+        with open(pkey_path, 'rb') as fd:
+            pkey = fd.read()
+            keyPair = RSA.import_key(pkey)
+    else:
+        keyPair = RSA.generate(bits=3072)
+
+        privkey = keyPair.export_key()
+        pubkey = keyPair.publickey().export_key()
+    
+        with open('tdx-module.privkey.PEM', 'wb') as fd:
+            fd.write(privkey)
+
+        with open('tdx-module.pubkey.PEM', 'wb') as fd:
+            fd.write(pubkey)
 
     modulus_b = long_to_bytes(keyPair.n)
 
@@ -201,19 +218,23 @@ def sign_and_embed(s: SeamSigstruct):
 
     s.signature = bytes(reversed(signature_b))
 
-def main():
-    if len(sys.argv) != 2:
-        print("Usage: ./gen_sigstruct <path to tdx_module.so>")
-        sys.exit()
+@click.command()
+@click.option('--module', '-m', required=True, type=str, help='path to tdx_module.so')
+@click.option('--priv', '-p', default=None, type=str, help='path to rsa3072-privkey.pem,'
+              + 'if not specified, generate new RSA key pair under current directory')
+def main(module, priv):
+    # if len(sys.argv) != 2:
+    #     print("Usage: ./gen_sigstruct <path to tdx_module.so>")
+    #     sys.exit()
 
-    tdx_module_path = sys.argv[1]
-    sigstruct_path = tdx_module_path + ".sigstruct"
+    # tdx_module_path = sys.argv[1]
+    sigstruct_path = module + ".sigstruct"
 
     sigstruct = SeamSigstruct()
     popup_fixed_fields(sigstruct)
-    popup_tdx_module_fields(sigstruct, tdx_module_path)
+    popup_tdx_module_fields(sigstruct, module)
     popup_configurable_fields(sigstruct)
-    sign_and_embed(sigstruct)
+    sign_and_embed(sigstruct, priv)
 
     print(sigstruct)
 
