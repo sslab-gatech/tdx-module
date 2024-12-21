@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 
 docker image inspect tdx-module-docker >/dev/null || {
-    docker build . -t tdx-module_docker
+    docker build . -t tdx-module-docker
 }
 
 [ -d libs/ipp/ipp-crypto-ipp-crypto_2021_10_0 ] || {
