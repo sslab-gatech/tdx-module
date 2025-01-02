@@ -12,6 +12,7 @@ from Crypto.Hash import SHA384
 from Crypto.Util.number import long_to_bytes
 
 import sys
+import cpuid
 
 
 @dataclass
@@ -118,6 +119,23 @@ class SeamSigstruct:
     def to_bytes(self):
         return b''.join([f.to_bytes() for f in self._fields])
 
+    @classmethod
+    def from_bytes(cls, payload: bytes):
+        if len(payload) != 2048:
+            raise Exception(f"Incorrect sigstruct size: {len(payload)} (should be 2048)")
+
+        s = SeamSigstruct()
+        offset = 0
+
+        for field in s._fields:
+            size = field.size
+
+            if 'reserved' not in field.name:
+                setattr(s, field.name, payload[offset:offset + size])
+
+            offset += size
+
+        return s
 
 def popup_fixed_fields(s: SeamSigstruct):
     s.header_type = 0x6
@@ -179,11 +197,11 @@ def popup_configurable_fields(s: SeamSigstruct):
     s.min_update_hv = 0
     s.no_downgrade = 0
     s.num_handoff_pages = 0xD
+
+    cpu_version = cpuid.cpuid(1)[0]
     
-    s.cpuid_table_size = 3
-    s.cpuid_table_0 = 0x806f8
-    s.cpuid_table_1 = 0xc06f0
-    s.cpuid_table_2 = 0xa06f0
+    s.cpuid_table_size = 1
+    s.cpuid_table_0 = cpu_version
 
 def sign_and_embed(s: SeamSigstruct, pkey_path: str):
 
@@ -219,27 +237,38 @@ def sign_and_embed(s: SeamSigstruct, pkey_path: str):
     s.signature = bytes(reversed(signature_b))
 
 @click.command()
-@click.option('--module', '-m', required=True, type=str, help='path to tdx_module.so')
+@click.option('--mode', required=True, type=click.Choice(['r', 'w']))
+@click.option('--sig', '-s', required=False, type=str, help='path to tdx_module.sigstruct to read')
+@click.option('--module', '-m', required=False, type=str, help='path to tdx_module.so')
 @click.option('--priv', '-p', default=None, type=str, help='path to rsa3072-privkey.pem,'
               + 'if not specified, generate new RSA key pair under current directory')
-def main(module, priv):
+def main(mode, sig, module, priv):
     # if len(sys.argv) != 2:
     #     print("Usage: ./gen_sigstruct <path to tdx_module.so>")
     #     sys.exit()
 
     # tdx_module_path = sys.argv[1]
-    sigstruct_path = module + ".sigstruct"
 
-    sigstruct = SeamSigstruct()
-    popup_fixed_fields(sigstruct)
-    popup_tdx_module_fields(sigstruct, module)
-    popup_configurable_fields(sigstruct)
-    sign_and_embed(sigstruct, priv)
+    if mode == 'r':
+        with open(sig, 'rb') as fd:
+            payload = fd.read()
 
-    print(sigstruct)
+        s = SeamSigstruct.from_bytes(payload)
+        print(s)
 
-    with open(sigstruct_path, 'wb') as fd:
-        fd.write(sigstruct.to_bytes())
+    else:
+        sigstruct_path = module + ".sigstruct"
+
+        sigstruct = SeamSigstruct()
+        popup_fixed_fields(sigstruct)
+        popup_tdx_module_fields(sigstruct, module)
+        popup_configurable_fields(sigstruct)
+        sign_and_embed(sigstruct, priv)
+
+        print(sigstruct)
+
+        with open(sigstruct_path, 'wb') as fd:
+            fd.write(sigstruct.to_bytes())
 
 if __name__ == "__main__":
     main()
