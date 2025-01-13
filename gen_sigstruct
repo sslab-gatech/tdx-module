@@ -182,7 +182,7 @@ def popup_configurable_fields(s: SeamSigstruct):
     s.date = bytes([int(date[i+1] + date[i], 16) 
                     for i in range(0, len(date), 2)])
 
-    s.seamsvn = 0
+    s.seamsvn = 0x106
     s.num_stack_pages = 1
     s.num_tls_pages = 1
     s.num_keyhole_pages = 0x7F
