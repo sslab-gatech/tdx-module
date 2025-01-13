@@ -325,7 +325,7 @@ _STATIC_INLINE_ api_error_type check_cpuid_configurations(tdx_module_global_t* g
 
     if ((!misc_enable.perfmon_available) || (misc_enable.bts_unavailable))
     {
-        return api_error_with_operand_id(TDX_INCORRECT_MSR_VALUE, IA32_MISC_ENABLES_MSR_ADDR);
+        API_ERROR_WITH_OPERAND_ID(TDX_INCORRECT_MSR_VALUE, IA32_MISC_ENABLES_MSR_ADDR);
     }
 
     uint32_t last_base_leaf, last_extended_leaf;
@@ -377,13 +377,6 @@ _STATIC_INLINE_ api_error_type check_cpuid_configurations(tdx_module_global_t* g
                         & cpuid_lookup[i].verify_mask.high)
                         == cpuid_lookup[i].verify_value.high)))
         {
-            tdx_module_local_t *tdx_local_data_ptr = get_local_data();
-            tdx_local_data_ptr->vmm_regs.rcx = cpuid_config.leaf_subleaf.raw;
-            tdx_local_data_ptr->vmm_regs.rdx = cpuid_lookup[i].verify_mask.low;
-            tdx_local_data_ptr->vmm_regs.r8 = cpuid_lookup[i].verify_mask.high;
-            tdx_local_data_ptr->vmm_regs.r9 = cpuid_lookup[i].verify_value.low;
-            tdx_local_data_ptr->vmm_regs.r10 = cpuid_lookup[i].verify_value.high;
-
             TDX_ERROR("CPUID 0x%x.0x%x doesn't match expected value!\n",
                     cpuid_config.leaf_subleaf.leaf, cpuid_config.leaf_subleaf.subleaf);
             TDX_ERROR("Verify mask: EAX = 0x%x, EBX = 0x%x, ECX = 0x%x, EDX = 0x%x\n",
@@ -396,7 +389,17 @@ _STATIC_INLINE_ api_error_type check_cpuid_configurations(tdx_module_global_t* g
                     cpuid_config.values.eax, cpuid_config.values.ebx,
                     cpuid_config.values.ecx, cpuid_config.values.edx);
 
+#ifdef OPENTDX
+#else
+            tdx_module_local_t *tdx_local_data_ptr = get_local_data();
+            tdx_local_data_ptr->vmm_regs.rcx = cpuid_config.leaf_subleaf.raw;
+            tdx_local_data_ptr->vmm_regs.rdx = cpuid_lookup[i].verify_mask.low;
+            tdx_local_data_ptr->vmm_regs.r8 = cpuid_lookup[i].verify_mask.high;
+            tdx_local_data_ptr->vmm_regs.r9 = cpuid_lookup[i].verify_value.low;
+            tdx_local_data_ptr->vmm_regs.r10 = cpuid_lookup[i].verify_value.high;
+
             return TDX_INCORRECT_CPUID_VALUE;
+#endif
         }
 
         /**
@@ -469,6 +472,7 @@ _STATIC_INLINE_ api_error_type check_cpuid_configurations(tdx_module_global_t* g
             }
         }
 
+        // [OPENTDX]
         else if (leaf == CPUID_PERFMON_LEAF)
         {
             tdx_module_local_t *tdx_local_data_ptr = get_local_data();
@@ -481,6 +485,8 @@ _STATIC_INLINE_ api_error_type check_cpuid_configurations(tdx_module_global_t* g
             cpuid_0a_ecx.raw = cpuid_config.values.ecx;
             cpuid_0a_edx.raw = cpuid_config.values.edx;
 
+#ifdef OPENTDX
+#else
             if (cpuid_0a_eax.version < 5)  // not supported
             {
                 tdx_local_data_ptr->vmm_regs.rcx = cpuid_config.leaf_subleaf.raw;
@@ -494,6 +500,7 @@ _STATIC_INLINE_ api_error_type check_cpuid_configurations(tdx_module_global_t* g
 
                 return TDX_INCORRECT_CPUID_VALUE;
             }
+#endif
 
             // Read and check actual number of fixed-function counters
             global_data_ptr->num_fixed_ctrs = cpuid_0a_edx.num_fcs;
@@ -578,9 +585,14 @@ _STATIC_INLINE_ api_error_type check_cpuid_configurations(tdx_module_global_t* g
 
             if (cpuid_config.values.ebx == 0)
             {
-                return api_error_with_operand_id(TDX_CPUID_LEAF_NOT_SUPPORTED, CPUID_TSC_ATTRIBUTES_LEAF);
+                API_ERROR_WITH_OPERAND_ID(TDX_CPUID_LEAF_NOT_SUPPORTED, CPUID_TSC_ATTRIBUTES_LEAF);
             }
 
+#ifdef OPENTDX
+            global_data_ptr->crystal_clock_frequency = NATIVE_TSC_FREQUENCY_MIN;
+            global_data_ptr->native_tsc_frequency = NATIVE_TSC_FREQUENCY_MIN;
+
+#else
             global_data_ptr->crystal_clock_frequency = cpuid_config.values.ecx;
 
             // Calculate native TSC frequency. Calculation is done as unsigned 64b and
@@ -588,6 +600,7 @@ _STATIC_INLINE_ api_error_type check_cpuid_configurations(tdx_module_global_t* g
             global_data_ptr->native_tsc_frequency =
                     ((uint64_t)cpuid_config.values.ecx * (uint64_t)cpuid_config.values.ebx) /
                      (uint64_t)cpuid_config.values.eax;
+#endif
 
             // Sanity check on native TSC frequency, to guarantee no overflow when TSC virtualization
             // params are calculated.
@@ -604,6 +617,10 @@ _STATIC_INLINE_ api_error_type check_cpuid_configurations(tdx_module_global_t* g
         }
         else if (leaf == CPUID_LBR_CAPABILITIES_LEAF)
         {
+#ifdef OPENTDX
+            global_data_ptr->max_lbr_depth = 0;
+
+#else
             uint32_t cpuid_1c_eax;
             cpuid_1c_eax = (uint32_t)cpuid_config.values.eax;
             tdx_debug_assert((cpuid_1c_eax & (BIT(8)-1)) > 0);
@@ -616,6 +633,7 @@ _STATIC_INLINE_ api_error_type check_cpuid_configurations(tdx_module_global_t* g
             }
 
             global_data_ptr->max_lbr_depth = 8 * ((uint32_t)msb + 1);
+#endif
         }
         /**
          * Get topology information and verify that the scope of WBINVD is package
@@ -696,6 +714,8 @@ _STATIC_INLINE_ api_error_type check_cpuid_configurations(tdx_module_global_t* g
                     global_data_ptr->x2apic_core_id_mask =
                             (uint32_t)(BIT(shift_count - global_data_ptr->x2apic_core_id_shift_count)) - 1U;
 
+#ifdef OPENTDX
+#else
                     /* Verify that L3 cache is shared across package:
                        According to the Intel SDM description of CPUID leaf 4:
                        "The nearest power-of-2 integer that is not smaller than
@@ -711,6 +731,7 @@ _STATIC_INLINE_ api_error_type check_cpuid_configurations(tdx_module_global_t* g
                         TDX_ERROR("invalid wbinvd scope\n");
                         return TDX_INVALID_WBINVD_SCOPE;
                     }
+#endif
                 }
             }
 
