@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/bash -ex
 
 docker image inspect tdx-module-docker >/dev/null || {
     docker build . -t tdx-module-docker
@@ -9,4 +9,36 @@ docker image inspect tdx-module-docker >/dev/null || {
     git clone -b ippcp_2021.10.0 --depth=1 https://github.com/intel/ipp-crypto libs/ipp/ipp-crypto-ipp-crypto_2021_10_0
 }
 
-docker run --rm -v $PWD:$PWD -w $PWD --name tdx-module-docker tdx-module-docker
+docker run -itd -v $PWD:$PWD -w $PWD --name tdx-module-docker tdx-module-docker
+docker exec tdx-module-docker bash -c \
+    "cd libs/ipp/ipp-crypto-ipp-crypto_2021_10_0 && \
+    CC=clang CXX=clang++ cmake CMakeLists.txt -B_build -DARCH=intel64 -DMERGED_BLD:BOOL=off -DNO_CRYPTO_MB:BOOL=TRUE -DPLATFORM_LIST=l9 -DIPPCP_CUSTOM_BUILD=\"IPPCP_AES_ON;IPPCP_CLMUL_ON;IPPCP_VAES_ON;IPPCP_VCLMUL_ON;\" && \
+    cd _build && \
+    make -j8 ippcp_s_l9"
+
+if [ ! -z $OPENTDX ]
+then
+    if [ ! -z $UNSTRIPPED ]
+    then
+        docker exec tdx-module-docker bash -c \
+            "make OPENTDX=1 UNSTRIPPED=1 clean && \
+             bear make -j DEBUG=1 TDX_MODULE_BUILD_DATE=20240407 TDX_MODULE_BUILD_NUM=744 TDX_MODULE_UPDATE_VER=6 OPENTDX=1 UNSTRIPPED=1"
+
+        objdump -D -S bin/debug.unstripped/libtdx.so > bin/debug.unstripped/libtdx.dump
+    else
+        docker exec tdx-module-docker bash -c \
+            "make OPENTDX=1 clean && \
+             bear make -j DEBUG=1 TDX_MODULE_BUILD_DATE=20240407 TDX_MODULE_BUILD_NUM=744 TDX_MODULE_UPDATE_VER=6 OPENTDX=1"
+        ./gen_sigstruct --mode w -m bin/debug/libtdx.so -p tdx-module.privkey.PEM
+
+        objdump -D bin/debug/libtdx.so > bin/debug/libtdx.dump
+    fi
+else
+    docker exec tdx-module-docker bash -c \
+        "make clean && \
+         bear make -j DEBUG=1 TDX_MODULE_BUILD_DATE=20240407 TDX_MODULE_BUILD_NUM=744 TDX_MODULE_UPDATE_VER=6"
+fi
+
+docker kill tdx-module-docker
+docker rm tdx-module-docker
+# docker run --rm -v $PWD:$PWD -w $PWD --name tdx-module-docker tdx-module-docker

@@ -33,8 +33,13 @@ CC_WITHOUT_CODE_COVERAGE := $(CC)
 CXX_WITHOUT_CODE_COVERAGE := $(CXX)
 
 # Standard flags
+ifdef UNSTRIPPED
+STD_FLAGS = -MD -MP -m64 -Wall -Wextra -fPIC -fno-builtin-memset -fvisibility=hidden -mcmodel=small \
+			-mstack-alignment=16 -mstackrealign -std=c17 -mno-mmx -mno-sse -fno-jump-tables -g
+else
 STD_FLAGS = -MD -MP -m64 -Wall -Wextra -fPIC -fno-builtin-memset -fvisibility=hidden -mcmodel=small \
 			-mstack-alignment=16 -mstackrealign -std=c17 -mno-mmx -mno-sse -fno-jump-tables
+endif
 
 # Optimization flags
 OPT_FLAGS = -Os

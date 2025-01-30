@@ -43,7 +43,11 @@ ASM_OBJECTS = $(foreach obj,$(__ASM_OBJECTS),$(OBJS_DIR)/$(obj))
 OBJECTS = $(C_OBJECTS) $(ASM_OBJECTS)
 DEPS := $(OBJECTS:.o=.d)
 
-CFLAGS += -D__FILENAME__=\"$(lastword $(subst /, ,$<))\"
+CFLAGS += -D__FILENAME__=\"$(lastword $(subst /, ,$<))\" 
+ifdef OPENTDX
+CFLAGS += -DDEBUGFEATURE_TDX_DBG_TRACE=1 -DOPENTDX=1
+endif
+
 
 CRYPTO_OBJECTS := $(CRYPTO_LIB_PATH)/$(CRYPTO_LIB_FILENAME)
 

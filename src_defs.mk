@@ -31,7 +31,11 @@ PROJ_DIR := $(patsubst %/,%,$(__PROJ_DIR))
 
 # Binary output location and name
 RELEASE_DIR := $(PROJ_DIR)/bin/release
+ifdef UNSTRIPPED
+DEBUG_DIR := $(PROJ_DIR)/bin/debug.unstripped
+else
 DEBUG_DIR := $(PROJ_DIR)/bin/debug
+endif
 TARGET_NAME := libtdx.so
 RELEASE_TARGET := $(RELEASE_DIR)/$(TARGET_NAME)
 DEBUG_TARGET := $(DEBUG_DIR)/$(TARGET_NAME)
