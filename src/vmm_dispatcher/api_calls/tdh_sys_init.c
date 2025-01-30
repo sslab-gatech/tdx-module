@@ -63,6 +63,8 @@ _STATIC_INLINE_ bool_t check_allowed_vmx_ctls(uint32_t* dest,
     tdx_sanity_check(((init | variable_mask) & unknown_mask) == 0,
                      SCEC_SEAMCALL_SOURCE(TDH_SYS_INIT_LEAF), 1);
 
+    EARLY_INIT_VMX_CTLS(dest, init, src.not_allowed0, src.allowed1);
+
     // Check bits that are fixed-1 (bits that are 1 in NOT_ALLOWED0).
     // Any fixed-1 bit must be initialized to 1.  For this check, ignore bits in the init value that are unknown.
     // Per Intel SDM:
@@ -122,6 +124,8 @@ _STATIC_INLINE_ bool_t check_allowed1_vmx_ctls(uint64_t* dest,
     /* Sanity check on the TDX-SEAM module's constants:
            Any unknown bits must be 0 in the init value and must not be variable */
     tdx_sanity_check(((init | variable_mask) & unknown_mask) == 0, SCEC_SEAMCALL_SOURCE(TDH_SYS_INIT_LEAF), 3);
+
+    EARLY_INIT_VMX_CTLS(dest, init, 0x0ULL, allowed1);
 
     /* Check bits that are fixed-0 (bits that are 0 in ALLOWED1).  Any fixed-0
        bit must be initialized to 0. */
