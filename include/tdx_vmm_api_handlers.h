@@ -336,6 +336,18 @@ api_error_type tdh_mng_key_freeid(uint64_t tdr_pa);
 api_error_type tdh_mng_init(uint64_t tdr_pa, uint64_t td_params_pa);
 
 
+typedef struct kvm_regs {
+	/* out (KVM_GET_REGS) / in (KVM_SET_REGS) */
+	uint64_t rax, rbx, rcx, rdx;
+	uint64_t rsi, rdi, rsp, rbp;
+	uint64_t r8,  r9,  r10, r11;
+	uint64_t r12, r13, r14, r15;
+	uint64_t rip, rflags;
+} kvm_regs_t;
+
+api_error_type tdh_vp_get_regs(uint64_t tdvpr_pa, uint64_t regs_pa);
+
+
 /**
  * @brief Initialize the saved state of a TD VCPU.
  *

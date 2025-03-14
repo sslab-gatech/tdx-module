@@ -59,6 +59,7 @@ typedef enum seamcall_leaf_opcode_e
     TDH_MNG_VPFLUSHDONE_LEAF         = 19,
     TDH_MNG_KEY_FREEID_LEAF          = 20,
     TDH_MNG_INIT_LEAF                = 21,
+    TDH_VP_GET_REGS                  = 46,
     TDH_VP_INIT_LEAF                 = 22,
     TDH_MEM_PAGE_PROMOTE_LEAF        = 23,
     TDH_PHYMEM_PAGE_RDMD_LEAF        = 24,

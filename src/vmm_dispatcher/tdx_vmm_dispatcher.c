@@ -277,6 +277,11 @@ void tdx_vmm_dispatcher(void)
         local_data->vmm_regs.rax = tdh_mng_init(local_data->vmm_regs.rcx, local_data->vmm_regs.rdx);
         break;
     }
+    case TDH_VP_GET_REGS:
+    {
+        local_data->vmm_regs.rax = tdh_vp_get_regs(local_data->vmm_regs.rcx, local_data->vmm_regs.rdx);
+        break;
+    }
     case TDH_VP_INIT_LEAF:
     {
         local_data->vmm_regs.rax = tdh_vp_init(local_data->vmm_regs.rcx, local_data->vmm_regs.rdx);
