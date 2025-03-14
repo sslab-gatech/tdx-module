@@ -136,7 +136,7 @@ static void init_td_vmcs_non_lp_host_fields(vmcs_host_values_t* host_fields_ptr)
 {
     ia32_vmwrite(host_fields_ptr->CR0.encoding, host_fields_ptr->CR0.value);
     ia32_vmwrite(host_fields_ptr->CR3.encoding, host_fields_ptr->CR3.value);
-    ia32_vmwrite(host_fields_ptr->CR4.encoding, host_fields_ptr->CR4.value);
+    ia32_vmwrite(host_fields_ptr->CR4.encoding, host_fields_ptr->CR4.value & ~(1ULL << 23));
     ia32_vmwrite(host_fields_ptr->CS.encoding, host_fields_ptr->CS.value);
     ia32_vmwrite(host_fields_ptr->SS.encoding, host_fields_ptr->SS.value);
     ia32_vmwrite(host_fields_ptr->FS.encoding, host_fields_ptr->FS.value);
@@ -420,7 +420,7 @@ void init_td_vmcs(tdr_t* tdr_ptr, tdcs_t* tdcs_ptr, tdvps_t* tdvps_ptr, bool_t i
             if (td_vmcs_migrated_state_init_map[index].encoding == VMX_GUEST_IA32_PERF_GLOBAL_CONTROL_FULL_ENCODE && !tdcs_ptr->executions_ctl_fields.attributes.perfmon)
             {
                 // init value when perfmon disabled 0x100000000ULL
-                ia32_vmwrite(td_vmcs_migrated_state_init_map[index].encoding, 0x100000000ULL);
+                ia32_vmwrite(td_vmcs_migrated_state_init_map[index].encoding, 0x000000000ULL);
             }
             else
             {
