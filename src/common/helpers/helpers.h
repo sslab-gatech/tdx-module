@@ -101,7 +101,7 @@ _STATIC_INLINE_ uint64_t construct_wrmsr_value(uint64_t rdx, uint64_t rax)
 
 _STATIC_INLINE_ bool_t are_gpa_bits_above_virt_maxpa_set(uint64_t gpa, bool_t gpaw, uint64_t virt_maxpa)
 {
-    uint16_t gpa_width = gpaw ? 52 : 48;
+    uint16_t gpa_width = gpaw ? 52 : 46;
     uint16_t shared_pa = gpa_width - 1;
 
     if (0 == virt_maxpa)
@@ -110,7 +110,7 @@ _STATIC_INLINE_ bool_t are_gpa_bits_above_virt_maxpa_set(uint64_t gpa, bool_t gp
     }
 
     // If the SHARED bit is 47 and virt_max_pa > 48, then any bits in the range virt_max_pa:48 must be 0
-    if ((47 == shared_pa) && (virt_maxpa > 48) && ((gpa & BITS(virt_maxpa - 1, 48)) != 0))
+    if ((45 == shared_pa) && (virt_maxpa > 46) && ((gpa & BITS(virt_maxpa - 1, 46)) != 0))
     {
         return true;
     }
@@ -125,7 +125,7 @@ _STATIC_INLINE_ bool_t are_gpa_bits_above_virt_maxpa_set(uint64_t gpa, bool_t gp
 
 _STATIC_INLINE_ bool_t get_gpa_shared_bit(uint64_t gpa, bool_t gpaw)
 {
-    uint16_t gpa_width_minus_1 = gpaw ? 51 : 47;
+    uint16_t gpa_width_minus_1 = gpaw ? 51 : 46;
 
     // When TD is configured with a 4 level EPT then the S bit is always bit 47 of the GPA.
     // When a TD is configured with 5 level EPT then the S bit is in bit 47 if GPAW
