@@ -16,29 +16,36 @@ docker exec tdx-module-docker bash -c \
     cd _build && \
     make -j8 ippcp_s_l9"
 
+pip3 install click pyelftools pycryptodome cpuid
+
+defined_vars=""
+bindir=bin/debug
+objdump_options="-D "
 if [ ! -z $OPENTDX ]
 then
-    if [ ! -z $UNSTRIPPED ]
-    then
-        docker exec tdx-module-docker bash -c \
-            "make OPENTDX=1 UNSTRIPPED=1 clean && \
-             bear make -j DEBUG=1 TDX_MODULE_BUILD_DATE=20240407 TDX_MODULE_BUILD_NUM=744 TDX_MODULE_UPDATE_VER=6 OPENTDX=1 UNSTRIPPED=1"
+    defined_vars+="OPENTDX=1 "
+fi
+if [ ! -z $DEBUGTRACE ]
+then
+    defined_vars+="DEBUGTRACE=1 "
+fi
+if [ ! -z $UNSTRIPPED ]
+then
+    defined_vars+="UNSTRIPPED=1 "
+    bindir=bin/debug.unstripped
+    objdump_options+="-S "
+fi
 
-        objdump -D -S bin/debug.unstripped/libtdx.so > bin/debug.unstripped/libtdx.dump
-    else
-        docker exec tdx-module-docker bash -c \
-            "make OPENTDX=1 clean && \
-             bear make -j DEBUG=1 TDX_MODULE_BUILD_DATE=20240407 TDX_MODULE_BUILD_NUM=744 TDX_MODULE_UPDATE_VER=6 OPENTDX=1"
-        ./gen_sigstruct --mode w -m bin/debug/libtdx.so -p tdx-module.privkey.PEM
+docker exec tdx-module-docker bash -c \
+    "make ${defined_vars} clean && \
+     bear make -j DEBUG=1 TDX_MODULE_BUILD_DATE=20240407 TDX_MODULE_BUILD_NUM=744 TDX_MODULE_UPDATE_VER=6 ${defined_vars}"
 
-        objdump -D bin/debug/libtdx.so > bin/debug/libtdx.dump
-    fi
-else
-    docker exec tdx-module-docker bash -c \
-        "make clean && \
-         bear make -j DEBUG=1 TDX_MODULE_BUILD_DATE=20240407 TDX_MODULE_BUILD_NUM=744 TDX_MODULE_UPDATE_VER=6"
+objdump ${objdump_options} ${bindir}/libtdx.so > ${bindir}/libtdx.dump
+
+if [ -z $UNSTRIPPED ]
+then
+    ./gen_sigstruct --mode w -m ${bindir}/libtdx.so -p tdx-module.privkey.PEM
 fi
 
 docker kill tdx-module-docker
 docker rm tdx-module-docker
-# docker run --rm -v $PWD:$PWD -w $PWD --name tdx-module-docker tdx-module-docker

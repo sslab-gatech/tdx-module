@@ -45,7 +45,10 @@ DEPS := $(OBJECTS:.o=.d)
 
 CFLAGS += -D__FILENAME__=\"$(lastword $(subst /, ,$<))\"
 ifdef OPENTDX
-CFLAGS += -DDEBUGFEATURE_TDX_DBG_TRACE=1 -DOPENTDX=1
+CFLAGS += -DOPENTDX=1
+endif
+ifdef DEBUGTRACE
+CFLAGS += -DDEBUGFEATURE_TDX_DBG_TRACE=1 
 endif
 
 
