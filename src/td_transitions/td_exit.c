@@ -404,7 +404,10 @@ static void async_tdexit_internal(api_error_code_e tdexit_case,
     tdx_local_data_ptr->vmm_regs.r13 = 0ULL;
     tdx_local_data_ptr->vmm_regs.r14 = 0ULL;
 
-    tdx_local_data_ptr->vmm_regs.r15 = 0ULL;
+    uint64_t rip = 0ULL;
+    ia32_vmread(VMX_GUEST_RIP_ENCODE, &rip);
+    tdx_local_data_ptr->vmm_regs.r15 = rip;
+
     tdx_local_data_ptr->vmm_regs.rbx = 0ULL;
     if (!tdx_local_data_ptr->vp_ctx.tdcs->executions_ctl_fields.config_flags.no_rbp_mod)
     {
