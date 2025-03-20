@@ -30,6 +30,7 @@
 
 #include "tdx_api_defs.h"
 #include "helpers/service_td.h"
+#include "auto_gen/tdx_error_codes_defs.h"
 
 /**
  * @brief Add a 4KB private page to a TD.
@@ -111,6 +112,22 @@ api_error_type tdh_vp_addcx(uint64_t tdcx_pa, uint64_t tdvpr_pa);
 api_error_type tdh_mem_page_aug(page_info_api_input_t gpa_page_info,
                            uint64_t tdr_pa,
                            uint64_t target_page_pa);
+
+#ifdef OPENTDX
+/**
+ * @brief Accept a 4KB private page from VMM side.
+ *
+ * @note
+ *
+ * @param gpa_page_info Guest physical address and level of to be mapped for the target page
+ * @param tdr_pa Host physical address of the parent TDR page
+ *
+ * @return Success or Error type
+ */
+api_error_type tdh_mem_page_accept(page_info_api_input_t gpa_page_info,
+                           uint64_t tdr_pa);
+#endif
+
 
 /**
  * @brief Relocate a 4KB mapped page from its current host physical address to another.

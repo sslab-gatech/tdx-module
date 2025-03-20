@@ -106,7 +106,13 @@ typedef enum seamcall_leaf_opcode_e
     TDH_IMPORT_STATE_IMMUTABLE_LEAF  = 85,
     TDH_IMPORT_STATE_TD_LEAF         = 86,
     TDH_IMPORT_STATE_VP_LEAF         = 87,
+
+#ifdef OPENTDX
+    TDH_MIG_STREAM_CREATE_LEAF       = 96,
+    TDH_MEM_PAGE_ACCEPT_LEAF         = 97
+#else
     TDH_MIG_STREAM_CREATE_LEAF       = 96
+#endif
 
 #ifdef DEBUGFEATURE_TDX_DBG_TRACE
     ,TDDEBUGCONFIG_LEAF = 0xFE

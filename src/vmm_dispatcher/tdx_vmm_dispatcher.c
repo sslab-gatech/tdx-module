@@ -246,6 +246,16 @@ void tdx_vmm_dispatcher(void)
                                                local_data->vmm_regs.r8);
         break;
     }
+#ifdef OPENTDX
+    case TDH_MEM_PAGE_ACCEPT_LEAF:
+    {
+        page_info_api_input_t gpa_mappings;
+        gpa_mappings.raw = local_data->vmm_regs.rcx;
+        local_data->vmm_regs.rax = tdh_mem_page_accept(gpa_mappings,
+                                               local_data->vmm_regs.rdx);
+        break;
+    }
+#endif
     case TDH_MEM_RANGE_BLOCK_LEAF:
     {
         page_info_api_input_t page_info;
