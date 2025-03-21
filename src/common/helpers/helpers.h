@@ -125,7 +125,7 @@ _STATIC_INLINE_ bool_t are_gpa_bits_above_virt_maxpa_set(uint64_t gpa, bool_t gp
 
 _STATIC_INLINE_ bool_t get_gpa_shared_bit(uint64_t gpa, bool_t gpaw)
 {
-    uint16_t gpa_width_minus_1 = gpaw ? 51 : 46;
+    uint16_t gpa_width_minus_1 = gpaw ? 51 : 45;
 
     // When TD is configured with a 4 level EPT then the S bit is always bit 47 of the GPA.
     // When a TD is configured with 5 level EPT then the S bit is in bit 47 if GPAW
