@@ -1527,12 +1527,14 @@ void calculate_tsc_virt_params(uint64_t tsc, uint64_t native_tsc_freq, uint16_t 
 
     tdx_sanity_check((native_tsc_freq >= NATIVE_TSC_FREQUENCY_MIN), SCEC_SEAMCALL_SOURCE(TDH_MNG_INIT_LEAF), 0);
 
-    _ASM_VOLATILE_ (
-        "mulq %2\n"
-        "divq %3\n"
-        : "=a"(tmp_tsc_multiplier)
-        : "a"((uint64_t)virt_tsc_frequency * VIRT_TSC_FREQUENCY_UNIT), "r"(1ULL << 48), "b"(native_tsc_freq)
-        : "%rdx" );
+    // _ASM_VOLATILE_ (
+    //     "mulq %2\n"
+    //     "divq %3\n"
+    //     : "=a"(tmp_tsc_multiplier)
+    //     : "a"((uint64_t)virt_tsc_frequency * VIRT_TSC_FREQUENCY_UNIT), "r"(1ULL << 48), "b"(native_tsc_freq)
+    //     : "%rdx" );
+    (void) virt_tsc_frequency;
+    tmp_tsc_multiplier = 1ULL << 48;
 
     // 2. TSC Offset Calculation
     // tmp_128b = current_tsc * tsc_multiplier;
