@@ -41,7 +41,8 @@ typedef enum {
 } stepping_filter_e;
 
 #define STEPPING_EPF_THRESHOLD 6   // Threshold of confidence in detecting EPT fault-based stepping in progress
-#define STEPPING_TSC_THRESHOLD _4KB // Threshold (in cycles) of time interval between successive TD vCPU async interruptions
+// #define STEPPING_TSC_THRESHOLD _4KB // Threshold (in cycles) of time interval between successive TD vCPU async interruptions
+#define STEPPING_TSC_THRESHOLD -0xFFFFUL // Threshold (in cycles) of time interval between successive TD vCPU async interruptions
 
 /**
  * @brief .

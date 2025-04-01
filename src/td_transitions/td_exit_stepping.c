@@ -203,13 +203,14 @@ stepping_filter_e vmexit_stepping_filter(vm_vmexit_exit_reason_t vm_exit_reason,
             // Always use instruction count heuristic if Perfmon is disabled, regardless of TDCS.ATTRIBUTES.ICSSD
             if (!perfmon_enabled)
             {
-                uint64_t inst_retired = ia32_rdmsr(IA32_FIXED_CTR0_MSR_ADDR);
-                uint64_t rcx_delta = ld_p->guest_rcx_on_td_entry - ld_p->vp_ctx.tdvps->guest_state.gpr_state.rcx;
+                return FILTER_OK_CONTINUE;
+                // uint64_t inst_retired = ia32_rdmsr(IA32_FIXED_CTR0_MSR_ADDR);
+                // uint64_t rcx_delta = ld_p->guest_rcx_on_td_entry - ld_p->vp_ctx.tdvps->guest_state.gpr_state.rcx;
 
-                if ((inst_retired > 1) || ((0 == inst_retired) && (rcx_delta > 1)))
-                {
-                    return FILTER_OK_CONTINUE;
-                }
+                // if ((inst_retired > 1) || ((0 == inst_retired) && (rcx_delta > 1)))
+                // {
+                //     return FILTER_OK_CONTINUE;
+                // }
             }
             else if ((rip_delta > INTEL64_MAX_INST_LEN * 2) || (vcpu_tsc_delta(ld_p) > STEPPING_TSC_THRESHOLD))
             {
