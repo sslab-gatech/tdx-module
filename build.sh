@@ -16,7 +16,14 @@ docker exec tdx-module-docker bash -c \
     cd _build && \
     make -j8 ippcp_s_l9"
 
-pip3 install click pyelftools pycryptodome cpuid
+if [ -d venv ];
+then
+    source venv/bin/activate
+else
+    python -m venv venv
+    source venv/bin/activate
+    pip3 install click pyelftools pycryptodome python-cpuid
+fi
 
 defined_vars=""
 bindir=bin/debug
