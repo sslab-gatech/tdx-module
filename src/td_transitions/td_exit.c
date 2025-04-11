@@ -404,10 +404,6 @@ static void async_tdexit_internal(api_error_code_e tdexit_case,
     tdx_local_data_ptr->vmm_regs.r13 = 0ULL;
     tdx_local_data_ptr->vmm_regs.r14 = 0ULL;
 
-    uint64_t rip = 0ULL;
-    ia32_vmread(VMX_GUEST_RIP_ENCODE, &rip);
-    tdx_local_data_ptr->vmm_regs.r15 = rip;
-
     tdx_local_data_ptr->vmm_regs.rbx = 0ULL;
     if (!tdx_local_data_ptr->vp_ctx.tdcs->executions_ctl_fields.config_flags.no_rbp_mod)
     {
@@ -497,6 +493,11 @@ void td_vmexit_to_vmm(uint8_t vcpu_state, uint8_t last_td_exit, uint64_t scrub_m
         // 1.  Save any guest state that it has not saved as part of the common guest-side operation, e.g.,
         //     the extended state per TDCS.XFAM
         save_guest_td_state_before_td_exit(tdcs_ptr, tdx_local_data_ptr);
+
+        // Convey TD RIP through MSBs of RCX
+        uint64_t rip;
+        ia32_vmread(VMX_GUEST_RIP_ENCODE, &rip);
+        tdx_local_data_ptr->vmm_regs.rcx |= rip << 32;
 
         // 2.  Set TDVPS.STATE to one of the VCPU_READY sub states, as an indication to the next TD entry.
         tdvps_ptr->management.state = vcpu_state;
