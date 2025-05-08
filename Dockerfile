@@ -73,19 +73,21 @@ RUN wget -P /tmp --no-check-certificate https://www.nasm.us/pub/nasm/releasebuil
     && rm -rf /tmp/nasm-$NASM_VERSION.*
 
 # Install Python3
+ENV PYTHON_VERSION=3.9.13
+ENV PYTHON_V=3.9
 RUN apt install -y build-essential checkinstall \
     && apt-get -y install zlib1g-dev \
-    && wget -P /tmp --no-check-certificate https://www.python.org/ftp/python/3.8.1/Python-3.8.1.tar.xz \
+    && wget -P /tmp --no-check-certificate https://www.python.org/ftp/python/$PYTHON_VERSION/Python-$PYTHON_VERSION.tar.xz \
     && wget -P /tmp --no-check-certificate https://bootstrap.pypa.io/get-pip.py -o get-pip.py \
-    && cd /tmp && tar -xvf Python-3.8.1.tar.xz \
-    && cd /tmp/Python-3.8.1 \
+    && cd /tmp && tar -xvf Python-$PYTHON_VERSION.tar.xz \
+    && cd /tmp/Python-$PYTHON_VERSION \
     && ./configure \
     && make altinstall \
-    && update-alternatives --install /usr/bin/python3.8 python3.8 /usr/local/bin/python3.8 1 \
+    && update-alternatives --install /usr/bin/python$PYTHON_V python$PYTHON_V /usr/local/bin/python$PYTHON_V 1 \
     && update-alternatives --install /usr/bin/python python /usr/bin/python3 1 \
-    && update-alternatives --install /usr/bin/python3 python3 /usr/local/bin/python3.8 1 \
-    && python3.8 /tmp/get-pip.py \
-    && rm -rf /tmp/get-pip.py /tmp/Python-3.8.1*
+    && update-alternatives --install /usr/bin/python3 python3 /usr/local/bin/python$PYTHON_V 1 \
+    && python$PYTHON_V /tmp/get-pip.py \
+    && rm -rf /tmp/get-pip.py /tmp/Python-$PYTHON_VERSION*
 
 # Install CMake
 RUN pip uninstall --yes setuptools \
