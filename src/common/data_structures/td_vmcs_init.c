@@ -58,7 +58,7 @@ const vmcs_fields_info_t td_vmcs_migrated_state_init_map[] = {
         // Guest MSR
         // init value when perfmon enabled 0xFFULL
         {.encoding = VMX_GUEST_IA32_PERF_GLOBAL_CONTROL_FULL_ENCODE, .value = 0xFFULL},
-        {.encoding = VMX_GUEST_IA32_PAT_FULL_ENCODE, .value = 0x0007040600070406ULL},
+        {.encoding = VMX_GUEST_IA32_PAT_FULL_ENCODE, .value = 0x0007040600070106ULL},
         {.encoding = VMX_GUEST_IA32_EFER_FULL_ENCODE, .value = 0x901ULL},
 
         {.encoding = (uint64_t)-1, .value = 0} // indicates last index
