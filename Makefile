@@ -47,6 +47,12 @@ CFLAGS += -D__FILENAME__=\"$(lastword $(subst /, ,$<))\"
 ifdef OPENTDX
 CFLAGS += -DOPENTDX=1
 endif
+ifdef MAXGPA
+CFLAGS += -DMAXGPA=${MAXGPA} -DMAXGPAULL=${MAXGPAULL}
+endif
+ifdef SHAREDGPA 
+CFLAGS += -DSHAREDGPA=${SHAREDGPA}
+endif
 ifdef DEBUGTRACE
 CFLAGS += -DDEBUGFEATURE_TDX_DBG_TRACE=1 
 endif
@@ -54,6 +60,11 @@ endif
 
 CRYPTO_OBJECTS := $(CRYPTO_LIB_PATH)/$(CRYPTO_LIB_FILENAME)
 
+$(info OPENTDX = $(OPENTDX))
+$(info BUILDTRACE = $(BUILDTRACE))
+$(info MAXGPA = $(MAXGPA))
+$(info MAXGPAULL = $(MAXGPAULL))
+$(info SHAREDGPA = $(SHAREDGPA))
 default: preBuildScripts $(TARGET) postBuildScripts
 all: default
 

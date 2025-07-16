@@ -18,3 +18,15 @@
 #define EARLY_INIT_VMX_CTLS(dest, init, not_allowed0, allowed1)
 
 #endif
+
+#ifndef MAXGPA
+#define MAXGPA      48
+#endif
+
+#ifndef MAXGPAULL
+#define MAXGPAULL   48ULL
+#endif
+
+#ifndef SHAREDGPA
+#define SHAREDGPA   47
+#endif

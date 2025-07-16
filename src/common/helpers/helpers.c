@@ -42,6 +42,8 @@
 #include "td_dispatcher/vm_exits/td_vmexit.h"
 #include "virt_msr_helpers.h"
 
+#include "debug/opentdx.h"
+
 #if (!defined(__cplusplus))
 void* memset(void *str, int c, uint32_t n)
 {
@@ -652,7 +654,7 @@ tdvps_t* map_tdvps(
 
 bool_t check_gpa_validity(pa_t gpa, bool_t gpaw, bool_t check_is_private, uint8_t virt_maxpa)
 {
-    uint16_t gpa_width = gpaw ? 52 : 48;
+    uint16_t gpa_width = gpaw ? 52 : MAXGPA;
     bool_t gpa_shared_bit = get_gpa_shared_bit(gpa.raw, gpaw);
 
     if (check_is_private && (gpa_shared_bit == true))

@@ -32,6 +32,8 @@
 #include "tdx_basic_defs.h"
 #include "tdx_basic_types.h"
 
+#include "debug/opentdx.h"
+
 #define SPR_A0_FMS          0x806F0
 #define SPR_B0_FMS          0x806F1
 #define SPR_C0_FMS          0x806F2
@@ -612,7 +614,7 @@ typedef union ia32e_paging_table_u {
 #define MAX_PA                  52ULL
 #define MIN_PA_FOR_PML5         49ULL
 #define MAX_PA_FOR_GPAW         MAX_PA
-#define MAX_PA_FOR_GPA_NOT_WIDE 46ULL
+#define MAX_PA_FOR_GPA_NOT_WIDE MAXGPAULL
 #define MIN_VIRT_MAXPA          45ULL
 #define NULL_PA                 ~(0ULL) // -1
 

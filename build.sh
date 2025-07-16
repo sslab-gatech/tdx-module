@@ -32,6 +32,15 @@ if [ ! -z $OPENTDX ]
 then
     defined_vars+="OPENTDX=1 "
 fi
+if [ ! -z $MAXGPA ]
+then
+    defined_vars+="MAXGPA=$MAXGPA "
+    defined_vars+="MAXGPAULL=${MAXGPA}ULL "
+fi
+if [ ! -z $SHAREDGPA ]
+then
+    defined_vars+="SHAREDGPA=$SHAREDGPA "
+fi
 if [ ! -z $DEBUGTRACE ]
 then
     defined_vars+="DEBUGTRACE=1 "
