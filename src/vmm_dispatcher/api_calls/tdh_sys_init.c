@@ -339,14 +339,14 @@ _STATIC_INLINE_ api_error_type check_cpuid_configurations(tdx_module_global_t* g
     ia32_cpuid(CPUID_MAX_INPUT_VAL_LEAF, 0, &last_base_leaf, &ebx, &ecx, &edx);
     if (last_base_leaf < CPUID_MIN_LAST_CPU_BASE_LEAF)
     {
-        return api_error_with_operand_id(TDX_CPUID_LEAF_NOT_SUPPORTED, CPUID_MIN_LAST_CPU_BASE_LEAF);
+        API_ERROR_WITH_OPERAND_ID(TDX_CPUID_LEAF_NOT_SUPPORTED, CPUID_MIN_LAST_CPU_BASE_LEAF);
     }
     global_data_ptr->cpuid_last_base_leaf = CPUID_LAST_BASE_LEAF;
 
     ia32_cpuid(CPUID_MAX_EXTENDED_VAL_LEAF, 0, &last_extended_leaf, &ebx, &ecx, &edx);
     if (last_extended_leaf < CPUID_LAST_EXTENDED_LEAF)
     {
-        return api_error_with_operand_id(TDX_CPUID_LEAF_NOT_SUPPORTED, CPUID_LAST_EXTENDED_LEAF);
+        API_ERROR_WITH_OPERAND_ID(TDX_CPUID_LEAF_NOT_SUPPORTED, CPUID_LAST_EXTENDED_LEAF);
     }
     tdx_sanity_check(last_extended_leaf >= CPUID_MAX_EXTENDED_VAL_LEAF, SCEC_SEAMCALL_SOURCE(TDH_SYS_INIT_LEAF), 4);
     global_data_ptr->cpuid_last_extended_leaf = last_extended_leaf;
@@ -686,12 +686,12 @@ _STATIC_INLINE_ api_error_type check_cpuid_configurations(tdx_module_global_t* g
                  */
                 if (cpuid_config.leaf_subleaf.subleaf == CPUID_GET_TOPOLOGY_INVALID_SUBLEAF)
                 {
-                    return api_error_with_operand_id(TDX_CPUID_LEAF_NOT_SUPPORTED, OPERAND_ID_RAX);
+                    API_ERROR_WITH_OPERAND_ID(TDX_CPUID_LEAF_NOT_SUPPORTED, OPERAND_ID_RAX);
                 }
                 // Sanity check: core level must have been scanned.
                 if (!core_level_scanned)
                 {
-                    return api_error_with_operand_id(TDX_CPUID_LEAF_NOT_SUPPORTED, OPERAND_ID_RAX);
+                    API_ERROR_WITH_OPERAND_ID(TDX_CPUID_LEAF_NOT_SUPPORTED, OPERAND_ID_RAX);
                 }
 
                 /* Check if this is the first invalid topology sub-leaf.  The shift count

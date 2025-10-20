@@ -351,8 +351,7 @@ static api_error_type read_and_set_cpuid_configurations(tdcs_t * tdcs_ptr,
                // If virtual TSX is enabled, IA32_TSX_CTRL must exist
                if (cpuid_07_00_ebx.hle && !global_data_ptr->plt_common_config.ia32_arch_capabilities.tsx_ctrl)
                {
-                   return_val = api_error_with_operand_id(TDX_INCORRECT_MSR_VALUE, IA32_ARCH_CAPABILITIES_MSR_ADDR);
-                   goto EXIT;
+                   API_ERROR_WITH_OPERAND_ID(TDX_INCORRECT_MSR_VALUE, IA32_ARCH_CAPABILITIES_MSR_ADDR);
                }
 
                tdcs_ptr->executions_ctl_fields.cpuid_flags.tsx_supported = cpuid_07_00_ebx.hle;

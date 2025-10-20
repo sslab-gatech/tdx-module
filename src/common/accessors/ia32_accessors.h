@@ -31,6 +31,7 @@
 #include "tdx_basic_defs.h"
 #include "tdx_basic_types.h"
 #include "helpers/error_reporting.h"
+#include "../data_structures/tdx_local_data_offsets.h"
 
 #include "x86_defs/mktme.h"
 #include "x86_defs/x86_defs.h"
@@ -573,10 +574,73 @@ _STATIC_INLINE_ void btr_32b(volatile uint32_t* mem, uint32_t bit)
     _ASM_VOLATILE_ ("btr %1, %0;" : "=m" ( *mem ) : "a"(bit) : "cc" , "memory");
 }
 
+_STATIC_INLINE_ bool_t movdir64b_supported()
+{
+    uint32_t eax, ebx, ecx, edx;
+    ia32_cpuid(0, 0, &eax, &ebx, &ecx, &edx);
+    if (eax < 7)
+        return false;
+
+    ia32_cpuid(7, 0, &eax, &ebx, &ecx, &edx);
+    return !!(ecx & (1UL << 28));
+}
+
 _STATIC_INLINE_ void movdir64b(const void *src, uint64_t dst)
 {
-    _ASM_VOLATILE_ (".byte  0x66, 0x0F, 0x38, 0xF8," /*movdir64b op*/ "0x37;" /*ModRM = RDI->RSI*/
-                    : : "D"(src), "S"(dst) : "memory" );
+    bool_t movdir_checked, movdir_supported;
+
+    _ASM_VOLATILE_("movb %%gs:%c1, %0\n\t"
+        : "=r"(movdir_checked) : "i"(TDX_LOCAL_DATA_CURRENT_TD_VM_ID_OFFSET+8) : );
+
+    if (movdir_checked)
+        _ASM_VOLATILE_("movb %%gs:%c1, %0\n\t"
+            : "=r"(movdir_supported) : "i"(TDX_LOCAL_DATA_CURRENT_TD_VM_ID_OFFSET+9) : );
+    else {
+        movdir_supported = movdir64b_supported();
+        _ASM_VOLATILE_(
+            "movb $0x1,  %%gs:%c1\n\t"
+            "movb %0,  %%gs:%c2\n\t"
+            : : "r"(movdir_supported), "i"(TDX_LOCAL_DATA_CURRENT_TD_VM_ID_OFFSET+8), "i"(TDX_LOCAL_DATA_CURRENT_TD_VM_ID_OFFSET+9)
+            : "memory"
+        );
+    }
+
+    if (movdir_supported)
+        _ASM_VOLATILE_ (".byte  0x66, 0x0F, 0x38, 0xF8," /*movdir64b op*/ "0x37;" /*ModRM = RDI->RSI*/
+                        : : "D"(src), "S"(dst) : "memory" );
+    else {
+        _ASM_VOLATILE_ (
+            "push %%rax\n\t"
+            "mov (%1), %%rax\n\t"
+            "mov %%rax, (%0)\n\t"
+
+            "mov 8(%1), %%rax\n\t"
+            "mov %%rax, 8(%0)\n\t"
+
+            "mov 16(%1), %%rax\n\t"
+            "mov %%rax, 16(%0)\n\t"
+
+            "mov 24(%1), %%rax\n\t"
+            "mov %%rax, 24(%0)\n\t"
+
+            "mov 32(%1), %%rax\n\t"
+            "mov %%rax, 32(%0)\n\t"
+
+            "mov 40(%1), %%rax\n\t"
+            "mov %%rax, 40(%0)\n\t"
+
+            "mov 48(%1), %%rax\n\t"
+            "mov %%rax, 48(%0)\n\t"
+
+            "mov 56(%1), %%rax\n\t"
+            "mov %%rax, 56(%0)\n\t"
+
+            "pop %%rax\n\t"
+            :
+            : "r"(dst), "r"(src)
+            : "rax", "memory"
+        );
+    }
 }
 
 _STATIC_INLINE_ void lfence(void)
