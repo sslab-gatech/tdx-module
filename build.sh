@@ -1,4 +1,4 @@
-#!/usr/bin/bash -ex
+#!/usr/bin/bash -e
 
 docker image inspect tdx-module-docker >/dev/null || {
     docker build . -t tdx-module-docker
@@ -31,16 +31,20 @@ objdump_options="-D "
 if [ ! -z $OPENTDX ]
 then
     defined_vars+="OPENTDX=1 "
-fi
-if [ ! -z $MAXGPA ]
-then
+
+    [ -z $MAXGPA ] || [ -z $SHAREDGPA ] && {
+        echo "======================================================================"
+        echo "Please provided environment variables 'MAXGPA' and 'SHAREDGPA'"
+        echo "You can get those using './common.sh -t phy' in OpenTDX root directory"
+        echo "======================================================================"
+        exit 0
+    }
+
     defined_vars+="MAXGPA=$MAXGPA "
     defined_vars+="MAXGPAULL=${MAXGPA}ULL "
-fi
-if [ ! -z $SHAREDGPA ]
-then
     defined_vars+="SHAREDGPA=$SHAREDGPA "
 fi
+
 if [ ! -z $DEBUGTRACE ]
 then
     defined_vars+="DEBUGTRACE=1 "
