@@ -94,7 +94,12 @@ _STATIC_INLINE_ bool_t check_allowed_vmx_ctls(uint32_t* dest,
     }
 
     // Return the value used for initializing the TD VMCS field (incl. unknown bits) Set fixed-1 (NOT_ALLOWED0) bits to 1.
+#ifdef OPENTDX
+    /* Do not set fixed-0 controls unsupported by the underlying CPU. */
+    *dest = (init | src.not_allowed0) & src.allowed1;
+#else
     *dest = (init | src.not_allowed0);
+#endif
 
     return true;
 }
@@ -141,7 +146,11 @@ _STATIC_INLINE_ bool_t check_allowed1_vmx_ctls(uint64_t* dest,
     }
 
     // Return the value used for initializing the TD VMCS field (incl. unknown bits)
+#ifdef OPENTDX
+    *dest = init & allowed1;
+#else
     *dest = init;
+#endif
 
     return true;
 }
