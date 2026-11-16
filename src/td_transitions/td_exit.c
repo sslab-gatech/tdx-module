@@ -520,7 +520,10 @@ void td_vmexit_to_vmm(uint8_t vcpu_state, uint8_t last_td_exit, uint64_t scrub_m
         {
             // TDGVPVMCALL behaves as a trap-like TD exit.
             // TDX-SEAM advances the guest TD RIP (in TD VMCS) to the instruction following TDCALL.
-            advance_guest_rip();
+            /* Trap-like exit: skip the 4-byte TDCALL. */
+            current_vmcs_guest_rip_advance(4);
+            clear_movss_sti_blocking();
+            set_guest_pde_bs();
         }
 
         // 3.  Execute the TD exit TLB tracking sequence, adjusting the TDCS tracking counters.
@@ -625,9 +628,11 @@ static void td_l2_to_l1_exit_internal(api_error_code_e tdexit_case, vm_vmexit_ex
     // Update L1's host state fields before entry
     update_host_state_in_td_vmcs(ld_p, tdvps_ptr, tdvps_ptr->management.curr_vm);
 
-    // Advance L1 guest RIP to the next instruction, following the TDCALL(TDG.VP.VMCALL) which entered L2
+    /* Skip the TDCALL that entered L2; its length is stale. */
     increment_fixed_ctr0(ld_p->vp_ctx.tdcs);
-    advance_guest_rip();
+    current_vmcs_guest_rip_advance(4);
+    clear_movss_sti_blocking();
+    set_guest_pde_bs();
 
     // Restore IA32_SPEC_CTR, restore the guest GPRs and enter the guest TD
     if (tdvps_ptr->management.vm_launched[tdvps_ptr->management.curr_vm])

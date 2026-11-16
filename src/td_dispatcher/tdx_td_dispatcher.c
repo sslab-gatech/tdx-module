@@ -927,7 +927,17 @@ void tdx_td_dispatcher(void)
         }
 
         increment_fixed_ctr0(tdx_local_data_ptr->vp_ctx.tdcs);
-        advance_guest_rip();
+        if (vm_exit_reason.basic_reason == VMEXIT_REASON_TDCALL)
+        {
+            /* TDCALL is 4 bytes; the synthesized exit length is stale. */
+            current_vmcs_guest_rip_advance(4);
+            clear_movss_sti_blocking();
+            set_guest_pde_bs();
+        }
+        else
+        {
+            advance_guest_rip();
+        }
     }
 
     bus_lock_exit();
