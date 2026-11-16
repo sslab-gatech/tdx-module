@@ -795,6 +795,42 @@ void tdx_td_dispatcher(void)
                     TDX_NON_RECOVERABLE_TD_NON_ACCESSIBLE  : TDX_SUCCESS,
                     vm_exit_reason, vm_exit_qualification.raw, 0, 0, vm_exit_inter_info.raw);
             break;
+        case VMEXIT_REASON_PREEMPTION_TIMER_EXPIRED:
+        {
+            tdvps_t* tdvps_ptr = tdx_local_data_ptr->vp_ctx.tdvps;
+            bool_t real_deadline = (tdvps_ptr->management.tsc_deadline[0] != ~0ULL);
+            vmx_pinbased_ctls_t pinbased_ctls;
+
+            tdvps_ptr->management.tsc_deadline[0] = ~0ULL;
+            tdvps_ptr->management.shadow_tsc_deadline[0] = ~0ULL;
+            ia32_vmread(VMX_VM_EXECUTION_CONTROL_PIN_BASED_ENCODE, &pinbased_ctls.raw);
+            pinbased_ctls.activate_vmx_preemption_timer = 0;
+            ia32_vmwrite(VMX_VM_EXECUTION_CONTROL_PIN_BASED_ENCODE, pinbased_ctls.raw);
+            ia32_vmwrite(VMX_GUEST_PREEMPTION_TIMER_COUNT_ENCODE, 0xFFFFFFFFULL);
+
+            if (real_deadline)
+            {
+                volatile ia32_apic_register_t* vapic_irr =
+                    (ia32_apic_register_t*)&tdvps_ptr->vapic.apic[APIC_MMIO_IRR_OFFSET];
+                guest_interrupt_status_t inter_status;
+                const uint32_t timer_vector = 0xEC;    /* LOCAL_TIMER_VECTOR */
+
+                vapic_irr[timer_vector >> 5].value |= (uint32_t)BIT(timer_vector & 0x1F);
+                ia32_vmread(VMX_GUEST_INTERRUPT_STATUS_ENCODE, &inter_status.raw);
+                if (inter_status.rvi < (uint8_t)timer_vector)
+                {
+                    inter_status.rvi = (uint8_t)timer_vector;
+                    ia32_vmwrite(VMX_GUEST_INTERRUPT_STATUS_ENCODE, inter_status.raw);
+                }
+                interrupt_occurred = true;
+            }
+            else
+            {
+                async_tdexit_to_vmm(TDX_SUCCESS, vm_exit_reason, vm_exit_qualification.raw,
+                                    0, 0, vm_exit_inter_info.raw);
+            }
+            break;
+        }
         case VMEXIT_REASON_INTERRUPT:
         case VMEXIT_REASON_C_STATE_SMI:
             async_tdexit_to_vmm(TDX_SUCCESS, vm_exit_reason, vm_exit_qualification.raw, 0, 0, vm_exit_inter_info.raw);
