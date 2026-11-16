@@ -2336,6 +2336,8 @@ void set_vmx_preemption_timer(tdvps_t* tdvps_p, uint16_t vm_id)
     {
         // A TSC_DEADLINE value of -1 indicates no deadline. Disable the VMX-preemption timer.
         pinbased_exec_ctls.activate_vmx_preemption_timer = 0;
+        // Park the count so a stale VMCS view cannot re-expire immediately.
+        ia32_vmwrite(VMX_GUEST_PREEMPTION_TIMER_COUNT_ENCODE, 0xFFFFFFFFULL);
     }
     else
     {

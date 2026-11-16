@@ -183,6 +183,8 @@ static void init_td_vmcs_exec_control_field(tdcs_t * tdcs_ptr, uint16_t vm_id)
     uint32_t vmentry_controls_vector = td_vmcs_values_ptr->entry_ctls;
     uint32_t pin_based_execution_controls = td_vmcs_values_ptr->pinbased_ctls;
     vmx_procbased_ctls_t processor_based_execution_controls = { .raw = td_vmcs_values_ptr->procbased_ctls };
+    if (vm_id == 0)
+        pin_based_execution_controls &= ~((uint32_t)BIT(6));
     vmx_procbased_ctls2_t sec_proc_based_execution_controls = { .raw = td_vmcs_values_ptr->procbased_ctls2 };
     vmx_procbased_ctls3_t ter_proc_based_execution_controls = { .raw = td_vmcs_values_ptr->procbased_ctls3 };
 

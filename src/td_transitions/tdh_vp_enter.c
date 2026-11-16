@@ -934,11 +934,8 @@ api_error_type tdh_vp_enter(uint64_t vcpu_handle_and_flags)
     debugctl.en_uncore_pmi = local_data_ptr->ia32_debugctl_value.en_uncore_pmi;
     ia32_vmwrite(VMX_GUEST_IA32_DEBUGCTLMSR_FULL_ENCODE, debugctl.raw);
 
-    if (tdvps_ptr->management.curr_vm != 0)
-    {
-        // Set the VMX preemption timer, if TSC deadline is enabled
-        set_vmx_preemption_timer(tdvps_ptr, tdvps_ptr->management.curr_vm);
-    }
+    /* Maintain the timer for VM #0 too; no deadline disarms it. */
+    set_vmx_preemption_timer(tdvps_ptr, tdvps_ptr->management.curr_vm);
 
     // If the SEPT lock was acquired by the TDENTER stepping filter, release it now
     // SEPT lock will be acquired by TDENTER stepping filter only if it didn't return
